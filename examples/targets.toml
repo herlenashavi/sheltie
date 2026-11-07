@@ -1,0 +1,52 @@
+# sheltie targets: ~/.config/sheltie/targets.toml
+#
+# `instance` is the SSM-managed EC2 instance to connect to or tunnel
+# through: an id (i-0abc…) or a tag filter (Name=bastion).
+
+[defaults]
+profile = "prod"          # an AWS CLI profile; SSO profiles log in when expired
+region = "us-east-1"
+instance = "Name=bastion"
+
+# A shell on the instance.
+[[target]]
+name = "prod-bastion"
+kind = "shell"
+description = "Shell on the prod bastion"
+
+# A database. Give `host` + `port`, or `cluster` / `db_instance` to look the
+# endpoint up. `client` runs once the tunnel is up and the tunnel closes when
+# it exits; leave it out to just hold the tunnel.
+[[target]]
+name = "orders-db"
+kind = "rds"
+description = "Orders Aurora (psql)"
+cluster = "orders"
+local_port = 15432
+client = "psql -h 127.0.0.1 -p {local_port} -U app orders"
+
+# Any TCP service the instance can reach.
+[[target]]
+name = "cache"
+kind = "tunnel"
+description = "Redis"
+host = "cache.abc123.use1.cache.amazonaws.com"
+port = 6379
+local_port = 16379
+client = "redis-cli -p {local_port}"
+
+# A private EKS API: tunnels to the endpoint and opens a shell with a
+# KUBECONFIG of its own (your default kube context is left alone).
+[[target]]
+name = "prod-eks"
+kind = "eks"
+description = "Prod EKS cluster"
+cluster = "prod"
+local_port = 8443
+
+# Another account: override profile/region/instance per target.
+[[target]]
+name = "staging-shell"
+kind = "shell"
+profile = "staging"
+instance = "i-0123456789abcdef0"
